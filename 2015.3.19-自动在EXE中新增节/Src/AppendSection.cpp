@@ -1,4 +1,6 @@
-﻿#include "head.h"
+﻿// 只对32位的，文件对齐和内存对齐都是0x1000的程序有效。
+
+#include "head.h"
 
 int main()
 {
