@@ -53,7 +53,7 @@ int main()
 
 		for (int i = 0; i < num_of_addr; i++)
 		{
-			if (!((t_pAddr[i] & 0x3000) ^ 0x3000))  // 判断高三位是否为0011
+			if ((t_pAddr[i] & 0x3000) == 0x3000) // 判断高三位是否为0011
 				cout << hex
 				<< (t_pAddr[i] & 0xfff) + pRelocationTable->VirtualAddress
 				<< endl;
