@@ -21,17 +21,16 @@ public:
         printf("Base:Function_3...\n");
     }
 };
-
 struct Sub : Base
 {
 public:
-    virtual void Function_4()
+    virtual void Function_1()
     {
-        printf("Sub:Function_4...\n");
+        printf("Sub:Function_1...\n");
     }
-    virtual void Function_5()
+    virtual void Function_2()
     {
-        printf("Sub:Function_5...\n");
+        printf("Sub:Function_2...\n");
     }
     virtual void Function_6()
     {
@@ -41,9 +40,9 @@ public:
 
 int main()
 {
-    Base base;
-    printf("this指针指向的地址：%x\n", &base);
-    PDWORD pVirtualTable = (PDWORD)(*(PDWORD)&base);
+    Sub sub;
+    printf("this指针指向的地址：%x\n", &sub);
+    PDWORD pVirtualTable = (PDWORD)(*(PDWORD)&sub);
     printf("虚表的地址：%x\n", pVirtualTable);
     int ct = 1;
     while (*pVirtualTable != 0)
