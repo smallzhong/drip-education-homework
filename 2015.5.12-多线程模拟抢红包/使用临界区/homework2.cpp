@@ -19,6 +19,7 @@ int g_total = -1;
 int g_num1 = 0;
 int g_num2 = 0;
 int g_num3 = 0;
+int g_t = -1; // 用来存放红包总大小
 
 BOOL CALLBACK MainDlgProc(HWND hwndDlg,   // handle to dialog box
                           UINT uMsg,      // message
@@ -57,6 +58,8 @@ BOOL CALLBACK MainDlgProc(HWND hwndDlg,   // handle to dialog box
 		{
 		case IDC_BUTTON1:
 			//创建一个新的线程
+			GetWindowText(GetDlgItem(g_hwnd, IDC_EDIT_TOTAL), string_buffer1, 100);
+			sscanf(string_buffer1, "%d", &g_t);
 			HANDLE hThread =
 				::CreateThread(NULL, 0, MainThreadProc, NULL, 0, NULL);
 		}
@@ -86,6 +89,8 @@ DWORD WINAPI MainThreadProc(LPVOID lpParameter)
 	::CloseHandle(hHandleArr[2]); // 防止内核对象泄漏
 	g_total = -1;
 	g_num1 = g_num2 = g_num3 = 0; // 设置为0，方便下一次抢红包
+	sprintf(string_buffer1, "红包总额%d已全部抢完。", g_t);
+	MessageBox(0, string_buffer1, TEXT("提示"), 0);
     return 0;
 }
 
@@ -110,7 +115,7 @@ DWORD WINAPI ThreadProc1(LPVOID lpParameter)
 			g_total = 0;
 		}
 		sprintf(string_buffer1, "%d", g_total);
-		sprintf(string_buffer2, "%d", g_num3);
+		sprintf(string_buffer2, "%d", g_num1);
 		SetWindowText(GetDlgItem(g_hwnd, IDC_EDIT1), string_buffer2);
 		SetWindowText(GetDlgItem(g_hwnd, IDC_EDIT_TOTAL), string_buffer1);
 		LeaveCriticalSection(&cs);
