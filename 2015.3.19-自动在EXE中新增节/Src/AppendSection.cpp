@@ -5,123 +5,155 @@
 int main()
 {
 	LPVOID pFileBuffer = NULL;
+	PIMAGE_DOS_HEADER pDosHeader = NULL;
+	PIMAGE_NT_HEADERS32 pNTHeader = NULL;
+	PIMAGE_SECTION_HEADER pSectionHeader = NULL;
+	DWORD file_size = ReadPEFile("f:\\fg_origin.exe", pFileBuffer, pDosHeader,
+								 pNTHeader, pSectionHeader);
 	LPVOID pNewFileBuffer = NULL;
-	DWORD file_size = ReadPEFile(FILEPATH_IN, &pFileBuffer);
-	if (!pFileBuffer)
-		EXIT_ERROR("pfilebuffer == NULL");
-	MallocAndSetToZero(file_size, &pNewFileBuffer, 1000); // 在最后填充一个节大小的0
+	AddNewSec(&pNewFileBuffer, pFileBuffer, pDosHeader, pNTHeader,
+			  pSectionHeader, file_size, 0x1000);
+	file_size += 0x1000; // 更新文件大小
+	FILE *fp;
+	fp = fopen("f:\\12312312312r13r.exe", "wb");
+	MY_ASSERT(fp);
+	fwrite(pNewFileBuffer, file_size, 1, fp);
+}
 
-	//memcpy(pNewFileBuffer, pFileBuffer, file_size);
+void AddNewSec(OUT LPVOID *pNewFileBuffer, IN LPVOID pFileBuffer,
+			   PIMAGE_DOS_HEADER pDosHeader, PIMAGE_NT_HEADERS32 pNTHeader,
+			   PIMAGE_SECTION_HEADER pSectionHeader, DWORD file_size,
+			   DWORD dwAddSize)
+{
+	PIMAGE_FILE_HEADER pImageFileHeader =
+		(PIMAGE_FILE_HEADER)((PBYTE)pDosHeader + pDosHeader->e_lfanew + 4);
 
-	PIMAGE_DOS_HEADER pDosHeader = GetDosHeader(pFileBuffer);
-	PIMAGE_NT_HEADERS32 pNTHeader = GetNTHeader(pFileBuffer, &pDosHeader);
+	PIMAGE_OPTIONAL_HEADER32 pImageOptionalHeader = (PIMAGE_OPTIONAL_HEADER32)(
+		(PBYTE)pImageFileHeader + sizeof(IMAGE_FILE_HEADER));
 
-	pNTHeader->FileHeader.NumberOfSections += 0x1; // 修改节的数量，新增一个节
-	pNTHeader->OptionalHeader.SizeOfImage += 0x1000; // 修改映像装载到内存中后的大小SizeOfImage
-	// 接下来开始新增节表
-	PIMAGE_SECTION_HEADER pFirstSetionHeader = NULL;
-	//pFirstSetionHeader = (PIMAGE_SECTION_HEADER)((DWORD)(pNTHeader->OptionalHeader) +
-	//	pNTHeader->FileHeader.SizeOfOptionalHeader);
-	pFirstSetionHeader = (PIMAGE_SECTION_HEADER)(
-		(DWORD)pNTHeader + sizeof(IMAGE_NT_SIGNATURE) +
-		sizeof(IMAGE_FILE_HEADER) + pNTHeader->FileHeader.SizeOfOptionalHeader);
-	// 指向NT头的指针加上PE标志大小加上标准PE头大小加上可选PE头大小得到第一个节表的地址
-	assert(pFirstSetionHeader);
+	if (((PBYTE)pImageOptionalHeader->SizeOfHeaders -
+		 ((PBYTE)pDosHeader->e_lfanew + IMAGE_SIZEOF_FILE_HEADER +
+		  pImageFileHeader->SizeOfOptionalHeader +
+		  40 * pImageFileHeader->NumberOfSections)) < 80)
+		EXIT_ERROR("空间不足，新增节表失败！");
 
+	DWORD numOfSec = pImageFileHeader->NumberOfSections;
+	// 1) 添加一个新的节(可以copy一份)
+	memcpy((LPVOID)(pSectionHeader + numOfSec), // 需要新增的位置
+		   (LPVOID)(pSectionHeader),			// 第一个节
+		   sizeof(IMAGE_SECTION_HEADER));		// 将第一个节（代码节）拷贝
 
-	PIMAGE_SECTION_HEADER pApeendSectionHeader = NULL;
-	// 指向第一个节表头的指针加上(节表数 * 节表大小)得到需要新增的节表的位置
-	pApeendSectionHeader = pFirstSetionHeader + pNTHeader->FileHeader.NumberOfSections - 1; 
-	// 因为刚刚把NumOfSetions加了一，现在要减一
+	// 2) 在新增节后面 填充一个节大小的000
+	memset((LPVOID)(pSectionHeader + numOfSec + 1), 0,
+		   sizeof(IMAGE_SECTION_HEADER));
 
-	// 将第一个节表的内容复制到新增节表上面去
-	memcpy(pApeendSectionHeader, pFirstSetionHeader, sizeof(IMAGE_SECTION_HEADER));
+	// 3) 修改PE头中节的数量
+	pImageFileHeader->NumberOfSections += 1;
+
+	// 4) 修改sizeOfImage的大小
+	pImageOptionalHeader->SizeOfImage += 0x1000;
+
+	// 5）修正新增节表的属性
 	// 修改该节表的名字
-	memcpy(pApeendSectionHeader, NameOfNewSetionHeader, sizeof(NameOfNewSetionHeader));
+	memcpy((LPVOID)(pSectionHeader + numOfSec), g_NameOfNewSectionHeader,
+		   sizeof(g_NameOfNewSectionHeader));
 	// 修改该节表中其他必要属性
-	(pApeendSectionHeader->Misc).VirtualSize = 0x1000; // 对齐前的大小，设为1000即可
-	// 为了修改VirtualAddress，要获取前一个节表的属性
-	PIMAGE_SECTION_HEADER pLastSetionHeader = NULL;
-	pLastSetionHeader = pApeendSectionHeader - 1;
+	(pSectionHeader + numOfSec)->Misc.VirtualSize =
+		0x1000; // 对齐前的大小，设为1000即可
 	// 根据前一个节表的属性修改virtualAddress
-	pApeendSectionHeader->VirtualAddress = pLastSetionHeader->VirtualAddress + pLastSetionHeader->SizeOfRawData;
+	(pSectionHeader + numOfSec)->VirtualAddress =
+		(pSectionHeader + numOfSec - 1)->VirtualAddress +
+		(pSectionHeader + numOfSec - 1)->SizeOfRawData;
 	// 修改sizeofRawData
-	pApeendSectionHeader->SizeOfRawData = 0x1000;
-
+	(pSectionHeader + numOfSec)->SizeOfRawData = 0x1000;
 	// 更新PointerToRawData
-	pApeendSectionHeader->PointerToRawData = pLastSetionHeader->PointerToRawData + pLastSetionHeader->SizeOfRawData;
+	(pSectionHeader + numOfSec)->PointerToRawData =
+		(pSectionHeader + numOfSec - 1)->PointerToRawData +
+		(pSectionHeader + numOfSec - 1)->SizeOfRawData;
+	// (pSectionHeader + numOfSec)->Characteristics =
+	// (pSectionHeader->Characteristics | (pSectionHeader + numOfSec -
+	// 1)->Characteristics);
 
-
-
-
-	pApeendSectionHeader->Characteristics = pFirstSetionHeader->Characteristics | pLastSetionHeader->Characteristics;
-	SaveToFile("e:\\1.exe", file_size + 0x1000, pFileBuffer);
-	//SaveToFile(FILEPATH_OUT, file_size + 1000, pNewFileBuffer);
+	// 6) 在原有数据的最后，新增一个节的数据(内存对齐的整数倍)
+	// (复制到新的LPVOID中去)
+	*pNewFileBuffer = malloc(file_size + dwAddSize);
+	memcpy(*pNewFileBuffer, pFileBuffer, file_size);
 }
 
-PIMAGE_NT_HEADERS32 GetNTHeader(LPVOID pFileBuffer, PIMAGE_DOS_HEADER* pDosHeader)
+DWORD ReadPEFile(IN LPCSTR file_in, OUT LPVOID &pFileBuffer,
+				 PIMAGE_DOS_HEADER &pDosHeader, PIMAGE_NT_HEADERS32 &pNTHeader,
+				 PIMAGE_SECTION_HEADER &pSectionHeader)
 {
-	PIMAGE_NT_HEADERS32 pNTHeader32 = NULL;
-	pNTHeader32 = (PIMAGE_NT_HEADERS32)((DWORD)pFileBuffer + (*pDosHeader)->e_lfanew);
-	if (!pNTHeader32)
-		EXIT_ERROR("null pointer!");
-	if (pNTHeader32->Signature != IMAGE_NT_SIGNATURE)
-		EXIT_ERROR("nt header error!signature not match!");
-	return pNTHeader32;
-}
-
-PIMAGE_DOS_HEADER GetDosHeader(LPVOID pFileBuffer)
-{
-	if (pFileBuffer == NULL)
-		EXIT_ERROR("pfilebuffer == NULL");
-	if (*((PWORD)pFileBuffer) != IMAGE_DOS_SIGNATURE)
-		EXIT_ERROR("the first word is not MZ!");
-
-	PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)pFileBuffer;
-	return pDosHeader;
-}
-
-void SaveToFile(LPCSTR file_out, size_t file_size, IN LPVOID pNewFileBuffer)
-{
-	FILE* fp = fopen(file_out, "wb");
-	if (!fp)
-		EXIT_ERROR("fp == NULL");
-	int t = fwrite(pNewFileBuffer, file_size, 1, fp);
-	if (t != 1)
-		EXIT_ERROR("t != 1");
-	fclose(fp);
-}
-
-void MallocAndSetToZero(IN DWORD OriginFileSize, OUT LPVOID* pNewFileBuffer, size_t AppendSize)
-{
-	if (*pNewFileBuffer) EXIT_ERROR("pNewfilebuffer not null!");
-	LPVOID tempBuffer;
-	tempBuffer = malloc(OriginFileSize + AppendSize);
-	if (tempBuffer == NULL)
-		EXIT_ERROR("tempbuffer == NULL");
-
-	memset(tempBuffer, 0, OriginFileSize + AppendSize);
-	*pNewFileBuffer = tempBuffer;
-}
-
-DWORD ReadPEFile(IN LPCSTR file_in, OUT LPVOID* pFileBuffer)
-{
-	FILE* fp;
+	FILE *fp;
 	fp = fopen(file_in, "rb");
-	if (fp == NULL)
-		EXIT_ERROR("fp == NULL");
-
-	LPVOID ptempFileBuffer;
+	if (!fp)
+		EXIT_ERROR("fp == NULL!");
+	DWORD file_size = 0;
 	fseek(fp, 0, SEEK_END);
-	DWORD file_size = ftell(fp);
-	ptempFileBuffer = malloc(file_size);
-	fseek(fp, 0, SEEK_SET); // 将指针指回文件头
-	fread(ptempFileBuffer, file_size, 1, fp);
-	if (ptempFileBuffer == NULL)
-		EXIT_ERROR("ptempfilebuffer == NULL");
+	file_size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
 
-	*pFileBuffer = ptempFileBuffer; // 赋值，完成工作
+	LPVOID t = malloc(file_size);
+	if ((fread(t, file_size, 1, fp) != 1) || t == NULL)
+		EXIT_ERROR("fread error or malloc error!");
 
-	fclose(fp); // 收尾
+	pFileBuffer = t;
+	MY_ASSERT(pFileBuffer);
+
+	pDosHeader = (PIMAGE_DOS_HEADER)(pFileBuffer);
+	MY_ASSERT(pDosHeader);
+	MY_ASSERT((pDosHeader->e_magic == IMAGE_DOS_SIGNATURE));
+
+	pNTHeader =
+		(PIMAGE_NT_HEADERS32)((PBYTE)pFileBuffer + pDosHeader->e_lfanew);
+	if (pNTHeader->FileHeader.SizeOfOptionalHeader != 0xe0)
+		EXIT_ERROR("this is not a 32-bit executable file.");
+
+	pSectionHeader = (PIMAGE_SECTION_HEADER)(
+		(PBYTE)pNTHeader + sizeof(IMAGE_NT_SIGNATURE) +
+		sizeof(IMAGE_FILE_HEADER) + pNTHeader->FileHeader.SizeOfOptionalHeader);
+
 	return file_size;
+}
+
+DWORD RVA_TO_FOA(LPVOID pFileBuffer, PIMAGE_DOS_HEADER pDosHeader,
+				 PIMAGE_NT_HEADERS32 pNTHeader,
+				 PIMAGE_SECTION_HEADER pSectionHeader, IN DWORD RVA)
+{
+	if (RVA < pNTHeader->OptionalHeader.SizeOfHeaders)
+		return RVA;
+
+	for (int i = 0; i < pNTHeader->FileHeader.NumberOfSections; i++)
+	{
+		if (RVA >= pSectionHeader[i].VirtualAddress &&
+			RVA < pSectionHeader[i].VirtualAddress +
+					  pSectionHeader[i].Misc.VirtualSize)
+		{
+			return (RVA - pSectionHeader[i].VirtualAddress +
+					pSectionHeader[i].PointerToRawData);
+		}
+	}
+
+	EXIT_ERROR("rva to foa failure!");
+}
+
+DWORD FOA_TO_RVA(LPVOID pFileBuffer, PIMAGE_DOS_HEADER pDosHeader,
+				 PIMAGE_NT_HEADERS32 pNTHeader,
+				 PIMAGE_SECTION_HEADER pSectionHeader, IN DWORD FOA)
+{
+	if (FOA < pNTHeader->OptionalHeader.SizeOfHeaders)
+		return FOA;
+
+	for (int i = 0; i < pNTHeader->FileHeader.NumberOfSections; i++)
+	{
+		if (FOA >= pSectionHeader[i].PointerToRawData &&
+			FOA < pSectionHeader[i].PointerToRawData +
+					  pSectionHeader[i].Misc.VirtualSize)
+		{
+			return (FOA - pSectionHeader[i].PointerToRawData +
+					pSectionHeader[i].VirtualAddress);
+		}
+	}
+
+	EXIT_ERROR("foa to rva error!");
 }
