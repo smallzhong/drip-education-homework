@@ -2,6 +2,16 @@
 
 + 里面都是自己写的滴水三期的课后作业
 
+  ## 2020.8.18更新
+
++ 新增节的时候一个节的 `VirtualSize` 是有可能大于 `SizeOfRawData` 的，要判断一下。如果前一个节的`VirtualSize` 大于其 `SizeOfRawData` ，那么要
+
+  ```cpp
+  (pSectionHeader + numOfSec)->VirtualAddress = (pSectionHeader + numOfSec - 1)->VirtualAddress + ((((pSectionHeader + numOfSec - 1)->Misc.VirtualSize / 0x1000) + 1)) * 0x1000;
+  ```
+
+  这样才能正确设置新增的节表里面填的 `VirtualAddress`
+
   ## 2020.8.17更新
 
 + 重构了自动新增节的代码。原来的代码可能有小bug。重构后的代码放在了[**原来的文件夹**](./2015.3.19-自动在EXE中新增节)中。
