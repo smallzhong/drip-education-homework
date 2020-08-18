@@ -7,7 +7,10 @@
 + 新增节的时候一个节的 `VirtualSize` 是有可能大于 `SizeOfRawData` 的，要判断一下。如果前一个节的`VirtualSize` 大于其 `SizeOfRawData` ，那么要
 
   ```cpp
-  (pSectionHeader + numOfSec)->VirtualAddress = (pSectionHeader + numOfSec - 1)->VirtualAddress + ((((pSectionHeader + numOfSec - 1)->Misc.VirtualSize / 0x1000) + 1)) * 0x1000;
+  (pSectionHeader + numOfSec)->VirtualAddress =
+      (pSectionHeader + numOfSec - 1)->VirtualAddress +
+      ((((pSectionHeader + numOfSec - 1)->Misc.VirtualSize / 0x1000) + 1)) *
+          0x1000;
   ```
 
   这样才能正确设置新增的节表里面填的 `VirtualAddress`
