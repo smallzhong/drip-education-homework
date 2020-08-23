@@ -2,6 +2,10 @@
 
 + 里面都是自己写的滴水三期的课后作业
 
+  ## 2020.8.23更新
+
++ 更新了6.4的第一个练习，但是这个程序有小问题，需要加载的目标程序的 `ImageBase` 必须在 **0x600000** 以上才能正常申请内存，原因不明，具体可以看[README.md](https://github.com/smallzhong/drip-education-homework/blob/master/2015.6.4(1)-加载进程/readme.md))
+
   ## 2020.8.18更新
 
 + 新增节的时候一个节的 `VirtualSize` 是有可能大于 `SizeOfRawData` 的，要判断一下。如果前一个节的`VirtualSize` 大于其 `SizeOfRawData` ，那么要
