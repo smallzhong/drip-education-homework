@@ -60,17 +60,18 @@ extern "C" __declspec(naked) VOID ProcFunc()
 
 int main(int argc, char *argv[])
 {
-    DWORD dwAddr = 0x4018E0;
+    DWORD dwAddr = 0x4018F0;
     DWORD dwBytes = 6;
     SetInlineHook(dwAddr, 1, dwBytes);
     DWORD a = Plus(1, 2);
     printf("Plus(1, 2) = %d\n", a);
     UninstallInlineHook(dwAddr, dwBytes);
+    printf("Plus(1, 2) = %d\n", a);
     system("pause");
     return 0;
 }
 
-// 0x4018D0 // 自己测试的时候要把这个地址根据自己电脑上显示的数据改动
+// 0x4018F0 // 自己测试的时候要把这个地址根据自己电脑上显示的数据改动
 DWORD Plus(DWORD x, DWORD y)
 {
     return x + y;
