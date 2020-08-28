@@ -11,6 +11,10 @@
 
 + [github下载(如果没有梯子请选择百度网盘下载方式)](https://github.com/smallzhong/drip-education-homework/raw/master/配套课件.zip)
 
+  ## 2020.8.2更新
+
++ 更新了6.10的 `inline hook` 练习，这也是最后的一个练习了。至此这个仓库已经更新完毕，以后只会再做一些小的修改。
+
   ## 2020.8.23更新
 
 + 更新了6.4的第一个练习，但是这个程序有小问题，需要加载的目标程序的 `ImageBase` 必须在 **0x600000** 以上才能正常申请内存，原因不明，具体可以看[README.md](https://github.com/smallzhong/drip-education-homework/blob/master/2015.6.4(1)-加载进程/README.md))
