@@ -11,7 +11,7 @@
 
 + [github下载(如果没有梯子请选择百度网盘下载方式)](https://github.com/smallzhong/drip-education-homework/raw/master/配套课件.zip)
 
-  ## 2020.8.2更新
+  ## 2020.8.28更新
 
 + 更新了6.10的 `inline hook` 练习，这也是最后的一个练习了。至此这个仓库已经更新完毕，以后只会再做一些小的修改。
 
