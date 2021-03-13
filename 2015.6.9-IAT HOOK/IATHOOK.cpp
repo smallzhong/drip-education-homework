@@ -34,7 +34,7 @@ int main()
 	// 获取进程信息
 	MODULEINFO moduleInfo;
 	MY_ASSERT(GetModuleInformation(GetCurrentProcess(),
-		GetModuleHandle(NULL), &moduleInfo, sizeof(moduleInfo)));
+		GetModuleHandle("USER32.DLL"), &moduleInfo, sizeof(moduleInfo)));
 	pImageBuffer = malloc(moduleInfo.SizeOfImage);
 
 	// 读取SizeOfImage大小的内存，放到pImageBuffer里面
