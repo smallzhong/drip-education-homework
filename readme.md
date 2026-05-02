@@ -2,22 +2,6 @@
 
 + 里面都是自己写的滴水三期的课后作业
 
-## 代码下载
-
-+ 考虑到国内git clone非常缓慢，我将代码传了一份在百度网盘上，如果通过github无法成功下载代码可以使用百度网盘下载，压缩包一共234kb大小。
-
-  链接：https://pan.baidu.com/s/1Rn30O3j6bX13rGRb22NvYQ 
-  提取码：1111 
-
-## 配套课件和练习所需程序(ipmsg.exe)下载
-
-+ 百度网盘下载
-
-  链接：https://pan.baidu.com/s/11PUqQ32fKnW9na4GXHnCvA 
-  提取码：1111
-
-+ [github下载(如果没有梯子请选择百度网盘下载方式)](https://github.com/smallzhong/drip-education-homework/raw/master/配套课件.zip)
-
   ## 2020.8.28更新
 
 + 更新了6.10的 `inline hook` 练习，这也是最后的一个练习了。至此这个仓库已经更新完毕，以后只会再做一些小的修改。
